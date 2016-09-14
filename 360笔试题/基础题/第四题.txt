@@ -1,0 +1,29 @@
+#!/bin/bash 
+
+#存档的环境变量 
+ log_path=/data1/backup_log
+ nginx_pid=/usr/local/webserver/nginx/nginx.pid
+ nginx_log=/data1/logs
+ yesterday=`date -d “yesterday” +%Y%m%d`
+
+#获取有规则的access.log名称，以后于后面建立目录使用 
+ host=`ls -l $nginx_log/*.access.log | awk -F ” ” ‘{print $9}’ | awk -F “.access” ‘{print $1}’ | awk -F “$nginx_log/” ‘{print $2}’`
+
+#循环建立目录与移动日志。 
+ for i in $host
+ do
+ if [ ! -d $log_path/$i/$yesterday ];then
+ mkdir -p $log_path/$i/$yesterday
+ fi
+ if [ ! -f $log_path/$i/$yesterday/$yesterday.access.log ];then
+ mv $nginx_log/$i.access.log $log_path/$i/$yesterday/$yesterday.access.log
+ kill -USR1 `cat $nginx_pid`
+ else
+ mv -bf $nginx_log/$i.access.log $log_path/$i/$yesterday/$yesterday.access.log_1
+ kill -USR1 `cat $nginx_pid`
+ fi
+ done
+
+最后需要做的是，把这个脚本放到crontab里，让其00：00时运行！
+ 运行该脚本后，会自动根据虚拟主机的主机名建立主目录，在该目录下层放新建前一天的日期目录，然后把昨天的日志放到这个目录里。实现每天一次日志切割。
+ *******该脚本运行的前提是，使用了自动日志的功能。
